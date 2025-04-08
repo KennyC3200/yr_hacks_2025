@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Optional
+from typing import List, Optional, Union, Dict
 from pydantic import BaseModel
 
 from selenium import webdriver
@@ -42,14 +42,7 @@ app.add_middleware(
 
 class LocationRequest(BaseModel):
     url: str
-
-
-class LocationReview(BaseModel):
-    fields: dict[str, str | int]
-
-
-class LocationResponse(BaseModel):
-    reviews: list[LocationReview] = []
+    max_scrolls: int
 
 
 def server():
@@ -63,7 +56,6 @@ def root():
 
 @app.post("/api/scrape/")
 async def scrape_location(req: LocationRequest):
-    max_scrolls = 1
     reviews = []
 
     try:
@@ -91,7 +83,7 @@ async def scrape_location(req: LocationRequest):
         prev_height = driver.execute_script("return arguments[0].scrollHeight", reviews_div)
         print_debug("Starting to scroll")
 
-        while scrolls < max_scrolls:
+        while scrolls < req.max_scrolls:
             scrolls += 1
             print_debug(f"Scrolled {scrolls} times")
 
@@ -99,7 +91,7 @@ async def scrape_location(req: LocationRequest):
             driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", reviews_div)
             time.sleep(0.5)
 
-            # Scroll until reaching very bottom of reviews or reaching max_scrolls
+            # Scroll until reaching very bottom of reviews or reaching max scrolls
             curr_height = driver.execute_script("return arguments[0].scrollHeight", reviews_div)
             if curr_height == prev_height:
                 print_debug("Reached bottom of reviews section")
@@ -140,10 +132,9 @@ async def scrape_location(req: LocationRequest):
     except Exception as e:
         print_error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        print_valid(f"Succesfully collected {len(reviews)} reviews")
-    print(reviews)
-    # return LocationResponse(reviews=reviews)
+
+    print_valid(f"Succesfully collected {len(reviews)} reviews")
+    return reviews
 
 
 if __name__ == "__main__":

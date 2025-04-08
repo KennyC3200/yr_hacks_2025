@@ -2,13 +2,13 @@
 
 TODO
 -----
-* Get the backend fully working
+* Have a file download box for the JSON
 * Have a output for the debug on the website?
-* Make it look pretty
-* Add a progress bar?
+    * Add a progress bar?
 * Add AI
 * Generate a circle graph view?
-* Add Google maps support
+* Add Google maps support (need google api key)
+* Dark/light theme
 
 Libraries Used
 -----
