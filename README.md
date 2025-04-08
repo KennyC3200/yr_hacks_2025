@@ -2,7 +2,6 @@
 
 TODO
 -----
-* Have a file download box for the JSON
 * Have a output for the debug on the website?
     * Add a progress bar?
 * Add AI

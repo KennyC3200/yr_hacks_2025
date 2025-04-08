@@ -1,3 +1,16 @@
+.input-form-header {
+    color: var(--main10);
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 2px solid var(--main1);
+    width: 50%;
+    font-size: 30px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+}
+
 .input-row {
     width: 40%;
     height: 30px;

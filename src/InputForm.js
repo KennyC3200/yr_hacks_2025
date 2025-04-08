@@ -4,7 +4,7 @@ import InputTitle from "./InputTitle"
 import InputTextarea from "./InputTextarea"
 import { useState } from "react"
 
-function InputForm() {
+function InputForm({ setJSONData }) {
     const [URL, setURL] = useState("");
 
     const handleURLChange = (e) => {
@@ -31,16 +31,16 @@ function InputForm() {
             }
 
             const data = await response.json()
-            console.log(data)
+            setJSONData(data)
+            // console.log(data)
         } catch (error) {
             console.log(error)
-        } finally {
-            console.log("SUCCESS")
         }
     }
 
     return (
         <div className="input-form">
+            <div className="input-form-header">Parameters</div>
             <InputRow 
                 leftContent={<InputTitle title="Google Location URL"></InputTitle>}
                 rightContent={
