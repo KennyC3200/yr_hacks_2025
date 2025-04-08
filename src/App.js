@@ -4,7 +4,7 @@ import "./App.css"
 function App() {
     const sendURL = async () => {
         try {
-            const response = await fetch("http://127.0.0.1:8000/api/search", {
+            const response = await fetch("http://127.0.0.1:8000/api/scrape", {
                 method: "POST",
                 headers: {
                     "accept": "application/json",

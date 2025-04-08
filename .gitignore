@@ -25,3 +25,4 @@ node_modules
 pyrightconfig.json
 .venv
 __pycache__
+error.png

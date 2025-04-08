@@ -11,6 +11,8 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
+from debug import *
+
 import uvicorn
 
 import time
@@ -38,8 +40,16 @@ app.add_middleware(
 )
 
 
-class LocationMetadata(BaseModel):
+class LocationRequest(BaseModel):
     url: str
+
+
+class LocationReview(BaseModel):
+    fields: dict[str, str | int]
+
+
+class LocationResponse(BaseModel):
+    reviews: list[LocationReview] = []
 
 
 def server():
@@ -51,9 +61,89 @@ def root():
     return {"Msg": "Hello there"}
 
 
-@app.post("/api/search/")
-def search_location(metadata: LocationMetadata):
-    return {"url": metadata.url}
+@app.post("/api/scrape/")
+async def scrape_location(req: LocationRequest):
+    max_scrolls = 1
+    reviews = []
+
+    try:
+        print_debug(f"Navigating to url: {shorten_str(req.url)}")
+        driver.get(req.url)
+
+        # Allow the page to load
+        time.sleep(PAGE_WAIT_TIME)
+
+        # Locate button and click it
+        print_debug("Locating reviews button")
+        reviews_button = driver.find_element(By.CSS_SELECTOR, "button[jsaction*=\"reviewChart\"]")
+        driver.execute_script("arguments[0].click()", reviews_button)
+        print_debug("Clicked reviews button")
+
+        # Allow reviews to load
+        print_debug("Waiting for reviews to load")
+        time.sleep(PAGE_WAIT_TIME)
+
+        # Reviews div
+        reviews_div = driver.find_element(By.CSS_SELECTOR, "div[class=\"m6QErb DxyBCb kA9KIf dS8AEf XiKgde \"]")
+
+        # Scrape reviews
+        scrolls = 0
+        prev_height = driver.execute_script("return arguments[0].scrollHeight", reviews_div)
+        print_debug("Starting to scroll")
+
+        while scrolls < max_scrolls:
+            scrolls += 1
+            print_debug(f"Scrolled {scrolls} times")
+
+            # Scroll and let the new reviews load
+            driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", reviews_div)
+            time.sleep(0.5)
+
+            # Scroll until reaching very bottom of reviews or reaching max_scrolls
+            curr_height = driver.execute_script("return arguments[0].scrollHeight", reviews_div)
+            if curr_height == prev_height:
+                print_debug("Reached bottom of reviews section")
+                break
+            prev_height = curr_height
+        time.sleep(1)
+
+        # Scrape the reviews
+        print_debug("Starting to scrape the reviews")
+        review_elements = reviews_div.find_elements(By.CSS_SELECTOR, "div[class=\"jftiEf fontBodyMedium \"]")
+        for review_element in review_elements:
+            try:
+                more_button = review_element.find_element(By.CSS_SELECTOR, "button[class=\"w8nwRe kyuRq\"]")
+                more_button.click()
+            except:
+                print_alert("Could not locate more_button")
+
+            desc_fields = []
+            try:
+                desc_fields_container = review_element.find_element(By.CSS_SELECTOR, "div[jslog=\"127691\"]")
+                desc_fields = desc_fields_container.find_elements(By.CSS_SELECTOR, "div[jslog]")
+            except:
+                print_alert("Could not locate desc_fields_container")
+            desc = review_element.find_element(By.CSS_SELECTOR, "span[class=\"wiI7pd\"]")
+
+            review = {}
+            if desc:
+                review["description"] = desc.text
+            for desc_field in desc_fields:
+                field = desc_field.find_elements(By.CSS_SELECTOR, "span[class=\"RfDO5c\"]")
+                if field:
+                    if len(field) == 1:
+                        s = field[0].text.split(": ")
+                        review[s[0]] = int(s[1])
+                    elif len(field) == 2:
+                        review[field[0].text] = field[1].text
+            reviews.append(review)
+    except Exception as e:
+        print_error(f"Unexpected error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        print_valid(f"Succesfully collected {len(reviews)} reviews")
+    print(reviews)
+    # return LocationResponse(reviews=reviews)
 
 
 if __name__ == "__main__":
@@ -67,5 +157,7 @@ if __name__ == "__main__":
     driver_opts.add_argument("--disable-dev-shm-usage")
     driver_opts.add_argument("--window-size=1920,1080")
     driver = webdriver.Chrome(options=driver_opts)
+
+    time.sleep(1000)
 
     driver.quit()
