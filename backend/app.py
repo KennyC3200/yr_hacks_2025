@@ -11,6 +11,8 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
+from ollama import ChatResponse
+
 from debug import *
 
 import uvicorn

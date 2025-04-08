@@ -4,14 +4,31 @@ import InputTitle from "./InputTitle"
 import InputTextarea from "./InputTextarea"
 import { useState } from "react"
 
+function validInt(str) {
+    if (typeof str != "string") return false
+    return !isNaN(str) && !isNaN(parseInt(str))
+}
+
 function InputForm({ setJSONData }) {
-    const [URL, setURL] = useState("");
+    const [URL, setURL] = useState("")
+    const [maxScrolls, setMaxScrolls] = useState("3")
 
     const handleURLChange = (e) => {
         setURL(e.target.value)
     }
 
+    const handleMaxScrollsChange = (e) => {
+        setMaxScrolls(e.target.value)
+    }
+
     const requestLocation = async () => {
+        if (URL.length == 0) {
+            alert("URL cannot be empty!")
+        }
+        if (!validInt(maxScrolls) || parseInt(maxScrolls) <= 0) {
+            alert("Max scrolls must be a positive integer!")
+        }
+
         try {
             const response = await fetch("http://127.0.0.1:8000/api/scrape", {
                 method: "POST",
@@ -48,6 +65,16 @@ function InputForm({ setJSONData }) {
                         placeholder="URL" 
                         value={URL} 
                         onChange={handleURLChange}>
+                    </InputTextarea>}
+            >
+            </InputRow>
+            <InputRow 
+                leftContent={<InputTitle title="Max Scroll Attempts"></InputTitle>}
+                rightContent={
+                    <InputTextarea 
+                        placeholder="Max Scrolls" 
+                        value={maxScrolls} 
+                        onChange={handleMaxScrollsChange}>
                     </InputTextarea>}
             >
             </InputRow>
