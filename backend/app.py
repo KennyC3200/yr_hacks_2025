@@ -11,6 +11,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
+import ollama
 from ollama import ChatResponse
 
 from debug import *
@@ -137,6 +138,26 @@ async def scrape_location(req: LocationRequest):
 
     print_valid(f"Succesfully collected {len(reviews)} reviews")
     return reviews
+
+
+class AIRequest(BaseModel):
+    json: str
+
+
+@app.post("/api/ai/")
+async def ai_req(req: AIRequest):
+    print_debug("AI Processing...")
+    response: ChatResponse = ollama.chat(model='deepseek-r1:1.5b', messages=[
+        {
+            "role": "user",
+            "content": "Given the following dict with JSON formatted restaurant reviews, generate "
+                "overall feedback and areas for improvement. Each key is the title and the"
+                f"value is the response from the individual: " + req.json
+        },
+    ])
+    if response.message.content:
+        print_valid(response.message.content)
+    return response.message.content
 
 
 if __name__ == "__main__":

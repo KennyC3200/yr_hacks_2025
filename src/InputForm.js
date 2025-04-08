@@ -9,7 +9,20 @@ function validInt(str) {
     return !isNaN(str) && !isNaN(parseInt(str))
 }
 
-function InputForm({ setJSONData }) {
+function animateToWidth(progressBar, targetWidth, msg) {
+    let width = parseInt(progressBar.style.width)
+    let id = setInterval(() => {
+        if (width >= targetWidth) {
+            clearInterval(id)
+            progressBar.innerText = msg
+        } else {
+            width++
+            progressBar.style.width = width + "%"
+        }
+    }, 20)
+}
+
+function InputForm({ setJSONData, setAIResponse }) {
     const [URL, setURL] = useState("")
     const [maxScrolls, setMaxScrolls] = useState("3")
 
@@ -24,10 +37,19 @@ function InputForm({ setJSONData }) {
     const requestLocation = async () => {
         if (URL.length == 0) {
             alert("URL cannot be empty!")
+            return
         }
         if (!validInt(maxScrolls) || parseInt(maxScrolls) <= 0) {
             alert("Max scrolls must be a positive integer!")
+            return
         }
+
+        let progressBar = document.getElementById("progress-bar")
+        progressBar.style.width = "0%"
+        progressBar.style.background = "#AFE1AF"
+        progressBar.style.color = "black"
+        progressBar.innerText = "Navigating..."
+        animateToWidth(progressBar, 10, "Scraping Reviews")
 
         try {
             const response = await fetch("http://127.0.0.1:8000/api/scrape", {
@@ -49,7 +71,26 @@ function InputForm({ setJSONData }) {
 
             const data = await response.json()
             setJSONData(data)
-            // console.log(data)
+
+            animateToWidth(progressBar, 30, "AI Processing...")
+            const _response = await fetch("http://127.0.0.1:8000/api/ai", {
+                method: "POST",
+                headers: {
+                    "accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({json: JSON.stringify(data)})
+            })
+
+            if (!_response.ok) {
+                const err = await _response.json()
+                throw new Error(err)
+            }
+
+            const aiResponse = await _response.text()
+            console.log(aiResponse)
+            setAIResponse(aiResponse)
+            animateToWidth(progressBar, 50, "Finished Scraping Reviews")
         } catch (error) {
             console.log(error)
         }
@@ -79,6 +120,7 @@ function InputForm({ setJSONData }) {
             >
             </InputRow>
             <button className="input-form-button" onClick={requestLocation}>Scrape Location</button>
+            <div id="progress-bar">Start Scraping!</div>
         </div>
     )
 }
